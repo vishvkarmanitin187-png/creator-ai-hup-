@@ -1,0 +1,206 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with credits and plan details",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner user UID" },
+        "displayName": { "type": "string", "description": "Display name" },
+        "email": { "type": "string", "description": "User email address" },
+        "photoUrl": { "type": "string", "description": "Profile photo URL" },
+        "credits": { "type": "integer", "description": "Available AI credits balance" },
+        "plan": { "type": "string", "enum": ["free", "creator", "pro"], "description": "Current subscription plan" },
+        "storageUsedBytes": { "type": "integer", "description": "Storage used in bytes" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp via serverTimestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp via serverTimestamp" }
+      },
+      "required": ["userId", "displayName", "email", "credits", "plan", "createdAt"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Content project created by user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner user UID" },
+        "title": { "type": "string", "description": "Project title" },
+        "description": { "type": "string", "description": "Project description or summary" },
+        "category": { "type": "string", "description": "Category like youtube, reels, ads, script" },
+        "type": { "type": "string", "description": "Type of project" },
+        "status": { "type": "string", "description": "Status of the project" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["userId", "title", "type", "createdAt"]
+    },
+    "GeneratedVideo": {
+      "title": "GeneratedVideo",
+      "description": "Video generated or requested by user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner user UID" },
+        "title": { "type": "string", "description": "Video title" },
+        "prompt": { "type": "string", "description": "Video prompt or description" },
+        "script": { "type": "string", "description": "Associated script" },
+        "style": { "type": "string", "description": "Visual style" },
+        "aspectRatio": { "type": "string", "enum": ["9:16", "16:9", "1:1"], "description": "Video aspect ratio" },
+        "resolution": { "type": "string", "description": "Resolution" },
+        "videoUrl": { "type": "string", "description": "Generated video URL or path" },
+        "thumbnailUrl": { "type": "string", "description": "Thumbnail preview URL" },
+        "status": { "type": "string", "enum": ["pending", "processing", "completed", "failed"], "description": "Status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["userId", "title", "prompt", "aspectRatio", "status", "createdAt"]
+    },
+    "GeneratedImage": {
+      "title": "GeneratedImage",
+      "description": "Image generated via AI Image Studio",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner user UID" },
+        "prompt": { "type": "string", "description": "Image prompt" },
+        "style": { "type": "string", "description": "Artistic style" },
+        "aspectRatio": { "type": "string", "description": "Image aspect ratio" },
+        "imageUrl": { "type": "string", "description": "Stored image URL or identifier" },
+        "base64Preview": { "type": "string", "description": "Base64 or local bitmap preview" },
+        "status": { "type": "string", "description": "Status of generation" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["userId", "prompt", "createdAt"]
+    },
+    "GeneratedAudio": {
+      "title": "GeneratedAudio",
+      "description": "Voiceover audio generated via AI Voice Studio",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner user UID" },
+        "title": { "type": "string", "description": "Audio title" },
+        "text": { "type": "string", "description": "Script or speech text" },
+        "language": { "type": "string", "description": "Language code" },
+        "voiceName": { "type": "string", "description": "Voice identifier" },
+        "speed": { "type": "number", "description": "Playback speech rate" },
+        "pitch": { "type": "number", "description": "Pitch factor" },
+        "audioUrl": { "type": "string", "description": "Audio file URL or path" },
+        "durationSeconds": { "type": "integer", "description": "Duration in seconds" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["userId", "title", "text", "language", "createdAt"]
+    },
+    "EditingProject": {
+      "title": "EditingProject",
+      "description": "Video editing workspace project",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner user UID" },
+        "title": { "type": "string", "description": "Project title" },
+        "durationSeconds": { "type": "integer", "description": "Total duration" },
+        "tracksJson": { "type": "string", "description": "Timeline tracks serialized JSON" },
+        "status": { "type": "string", "description": "Draft or exported" },
+        "exportedUrl": { "type": "string", "description": "Exported video URL" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["userId", "title", "createdAt"]
+    },
+    "Subscription": {
+      "title": "Subscription",
+      "description": "User subscription plan status",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner user UID" },
+        "planId": { "type": "string", "enum": ["free", "creator", "pro"], "description": "Plan ID" },
+        "status": { "type": "string", "description": "Subscription status" },
+        "renewalDate": { "type": "string", "description": "Next renewal date" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["userId", "planId", "status", "createdAt"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Financial or credit transaction",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner user UID" },
+        "amount": { "type": "number", "description": "Monetary amount" },
+        "creditsAdded": { "type": "integer", "description": "Credits added" },
+        "type": { "type": "string", "description": "Transaction type" },
+        "status": { "type": "string", "description": "Payment status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["userId", "creditsAdded", "type", "createdAt"]
+    },
+    "AiUsage": {
+      "title": "AiUsage",
+      "description": "Log of AI operations and credit consumption",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner user UID" },
+        "operation": { "type": "string", "description": "AI operation type" },
+        "creditsDeducted": { "type": "integer", "description": "Credits used" },
+        "model": { "type": "string", "description": "Model used" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp" }
+      },
+      "required": ["userId", "operation", "creditsDeducted", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "In-app notifications for the creator",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Recipient user UID" },
+        "title": { "type": "string", "description": "Notification title" },
+        "message": { "type": "string", "description": "Notification body" },
+        "type": { "type": "string", "description": "Category of notification" },
+        "isRead": { "type": "boolean", "description": "Read flag" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp" }
+      },
+      "required": ["userId", "title", "message", "isRead", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User account profiles and credit balances"
+    },
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Creator projects and workspaces"
+    },
+    "/generated_videos/{videoId}": {
+      "schema": "GeneratedVideo",
+      "description": "AI generated videos"
+    },
+    "/generated_images/{imageId}": {
+      "schema": "GeneratedImage",
+      "description": "AI generated images"
+    },
+    "/generated_audio/{audioId}": {
+      "schema": "GeneratedAudio",
+      "description": "AI generated voiceovers"
+    },
+    "/editing_projects/{editId}": {
+      "schema": "EditingProject",
+      "description": "Video editor project files"
+    },
+    "/subscriptions/{subId}": {
+      "schema": "Subscription",
+      "description": "Creator subscriptions"
+    },
+    "/transactions/{transId}": {
+      "schema": "Transaction",
+      "description": "Credit purchase transactions"
+    },
+    "/ai_usage/{usageId}": {
+      "schema": "AiUsage",
+      "description": "Credit consumption logs"
+    },
+    "/notifications/{notifId}": {
+      "schema": "Notification",
+      "description": "User notifications"
+    }
+  }
+}

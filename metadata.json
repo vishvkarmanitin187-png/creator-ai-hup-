@@ -1,0 +1,6 @@
+{
+  "name": "Creator AI Hub",
+  "description": "Production-ready AI content creation platform to create scripts, videos, voiceovers, images, and grow social media channels.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

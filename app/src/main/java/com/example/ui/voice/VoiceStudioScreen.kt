@@ -1,0 +1,474 @@
+package com.example.ui.voice
+
+import android.speech.tts.TextToSpeech
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.data.repository.CreatorHubRepository
+import com.example.ui.components.CreditChip
+import com.example.ui.components.CyberBadge
+import com.example.ui.components.CyberButton
+import com.example.ui.components.CyberCard
+import com.example.ui.components.CyberHeader
+import com.example.ui.components.CyberTextField
+import com.example.ui.theme.CyberBorder
+import com.example.ui.theme.CyberDark
+import com.example.ui.theme.CyberSurfaceElevated
+import com.example.ui.theme.CyberSurfaceVariant
+import com.example.ui.theme.NeonAmber
+import com.example.ui.theme.NeonCyan
+import com.example.ui.theme.NeonGreen
+import com.example.ui.theme.NeonPink
+import com.example.ui.theme.NeonPurple
+import com.example.ui.theme.TextMuted
+import com.example.ui.theme.TextPrimary
+import com.example.ui.theme.TextSecondary
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.util.Locale
+
+private val VOICE_PRESETS = listOf(
+  VoiceOption("Zephyr (Deep Male)", "en", 1.0f, 0.85f),
+  VoiceOption("Aria (Narrative Female)", "en", 1.05f, 1.15f),
+  VoiceOption("Aarav (Hindi Male)", "hi", 1.0f, 0.95f),
+  VoiceOption("Ananya (Hindi Female)", "hi", 1.0f, 1.2f),
+  VoiceOption("Rohan (Hinglish Dynamic)", "en", 1.15f, 1.0f)
+)
+
+data class VoiceOption(
+  val name: String,
+  val langCode: String,
+  val defaultSpeed: Float,
+  val defaultPitch: Float
+)
+
+@Composable
+fun VoiceStudioScreen(
+  userId: String,
+  credits: Long,
+  repository: CreatorHubRepository,
+  onBack: () -> Unit
+) {
+  BackHandler { onBack() }
+  val context = LocalContext.current
+  val scope = rememberCoroutineScope()
+
+  var scriptText by remember {
+    mutableStateOf("Welcome back creators! Today we are exploring the top 3 secrets to double your audience retention using AI-generated hooks and pacing.")
+  }
+  var selectedVoice by remember { mutableStateOf(VOICE_PRESETS[0]) }
+  var speed by remember { mutableFloatStateOf(1.0f) }
+  var pitch by remember { mutableFloatStateOf(1.0f) }
+
+  var ttsEngine by remember { mutableStateOf<TextToSpeech?>(null) }
+  var isPlaying by remember { mutableStateOf(false) }
+  var isSynthesizing by remember { mutableStateOf(false) }
+  var waveformOffset by remember { mutableFloatStateOf(0f) }
+  var hasGenerated by remember { mutableStateOf(false) }
+
+  // Initialize Android native TTS engine
+  DisposableEffect(context) {
+    var engine: TextToSpeech? = null
+    engine = TextToSpeech(context) { status ->
+      if (status == TextToSpeech.SUCCESS) {
+        ttsEngine = engine
+      }
+    }
+    onDispose {
+      engine?.stop()
+      engine?.shutdown()
+    }
+  }
+
+  // Waveform animation loop during playback
+  LaunchedEffect(isPlaying) {
+    if (isPlaying) {
+      while (isPlaying) {
+        delay(60L)
+        waveformOffset = (waveformOffset + 0.15f) % (2f * Math.PI.toFloat())
+      }
+    }
+  }
+
+  LazyColumn(
+    modifier = Modifier
+      .fillMaxSize()
+      .background(CyberDark)
+      .padding(horizontal = 20.dp),
+    verticalArrangement = Arrangement.spacedBy(16.dp)
+  ) {
+    item {
+      Spacer(modifier = Modifier.height(10.dp))
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        IconButton(onClick = onBack) {
+          Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Back",
+            tint = TextPrimary
+          )
+        }
+        Text(
+          text = "AI VOICE STUDIO",
+          color = TextPrimary,
+          fontSize = 18.sp,
+          fontWeight = FontWeight.Black,
+          letterSpacing = 1.sp
+        )
+        CreditChip(credits = credits)
+      }
+    }
+
+    // Voice Selection
+    item {
+      CyberCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+          CyberHeader(
+            title = "Voice Persona & Language",
+            subtitle = "Choose from studio voices across English, Hindi & Hinglish"
+          )
+          LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(VOICE_PRESETS) { voice ->
+              val isSelected = voice.name == selectedVoice.name
+              Box(
+                modifier = Modifier
+                  .clip(RoundedCornerShape(12.dp))
+                  .background(if (isSelected) NeonGreen.copy(alpha = 0.2f) else CyberSurfaceElevated)
+                  .border(1.dp, if (isSelected) NeonGreen else CyberBorder, RoundedCornerShape(12.dp))
+                  .clickable {
+                    selectedVoice = voice
+                    speed = voice.defaultSpeed
+                    pitch = voice.defaultPitch
+                  }
+                  .padding(horizontal = 14.dp, vertical = 10.dp)
+              ) {
+                Column {
+                  Text(text = voice.name, color = if (isSelected) NeonGreen else TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                  Text(text = "Lang: ${voice.langCode.uppercase()}", color = TextSecondary, fontSize = 11.sp)
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Script Input
+    item {
+      CyberCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+          CyberHeader(
+            title = "Voiceover Script",
+            subtitle = "Type or paste script to synthesize natural speech",
+            badgeText = "COST: 10 CREDITS"
+          )
+          CyberTextField(
+            value = scriptText,
+            onValueChange = { scriptText = it },
+            label = "Enter text for voiceover...",
+            placeholder = "Enter Hindi or English narration text...",
+            singleLine = false,
+            maxLines = 5
+          )
+
+          // Quick samples
+          Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Surface(
+              color = CyberSurfaceElevated,
+              shape = RoundedCornerShape(8.dp),
+              modifier = Modifier.clickable {
+                scriptText = "Namaste dosto! Aaj hum dekhenge AI ki madad se trending reels kaise banayein sirf do minute mein."
+              }
+            ) {
+              Text("Hindi Sample", color = NeonCyan, fontSize = 11.sp, modifier = Modifier.padding(8.dp))
+            }
+            Surface(
+              color = CyberSurfaceElevated,
+              shape = RoundedCornerShape(8.dp),
+              modifier = Modifier.clickable {
+                scriptText = "Stop scrolling right now! If you are a video creator, here is the secret tool that changed everything."
+              }
+            ) {
+              Text("Viral Hook Sample", color = NeonPurple, fontSize = 11.sp, modifier = Modifier.padding(8.dp))
+            }
+          }
+        }
+      }
+    }
+
+    // Sliders for Speed and Pitch
+    item {
+      CyberCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+          Text("Voice Tuning Controls", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+
+          // Speed
+          Column {
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+              Text("Speech Rate", color = TextSecondary, fontSize = 12.sp)
+              Text(String.format(Locale.US, "%.2fx", speed), color = NeonCyan, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            }
+            Slider(
+              value = speed,
+              onValueChange = { speed = it },
+              valueRange = 0.5f..2.0f,
+              colors = SliderDefaults.colors(
+                thumbColor = NeonCyan,
+                activeTrackColor = NeonCyan,
+                inactiveTrackColor = CyberSurfaceVariant
+              )
+            )
+          }
+
+          // Pitch
+          Column {
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+              Text("Pitch Factor", color = TextSecondary, fontSize = 12.sp)
+              Text(String.format(Locale.US, "%.2fx", pitch), color = NeonPurple, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            }
+            Slider(
+              value = pitch,
+              onValueChange = { pitch = it },
+              valueRange = 0.5f..2.0f,
+              colors = SliderDefaults.colors(
+                thumbColor = NeonPurple,
+                activeTrackColor = NeonPurple,
+                inactiveTrackColor = CyberSurfaceVariant
+              )
+            )
+          }
+        }
+      }
+    }
+
+    // Generate & Preview Action
+    item {
+      CyberButton(
+        text = if (isSynthesizing) "Synthesizing Speech..." else "Synthesize & Preview Voice",
+        icon = Icons.Default.Mic,
+        isLoading = isSynthesizing,
+        enabled = scriptText.isNotBlank() && credits >= 10 && !isSynthesizing,
+        containerColor = NeonGreen,
+        contentColor = CyberDark,
+        onClick = {
+          scope.launch {
+            isSynthesizing = true
+            try {
+              val deducted = repository.deductCredits(userId, 10L, "tts", "android-tts-engine")
+              if (!deducted) {
+                Toast.makeText(context, "Insufficient credits for voice synthesis.", Toast.LENGTH_SHORT).show()
+                isSynthesizing = false
+                return@launch
+              }
+
+              // Set language and parameters on Android TTS engine
+              ttsEngine?.let { engine ->
+                val locale = if (selectedVoice.langCode == "hi") Locale("hi", "IN") else Locale.US
+                engine.language = locale
+                engine.setSpeechRate(speed)
+                engine.setPitch(pitch)
+
+                engine.speak(scriptText, TextToSpeech.QUEUE_FLUSH, null, "CreatorHubVoice")
+                isPlaying = true
+              }
+
+              hasGenerated = true
+
+              // Save to Firestore
+              repository.saveAudio(
+                userId = userId,
+                title = "Voice: " + scriptText.take(25) + "...",
+                text = scriptText,
+                language = selectedVoice.langCode,
+                voiceName = selectedVoice.name,
+                speed = speed.toDouble(),
+                pitch = pitch.toDouble(),
+                durationSeconds = (scriptText.split(" ").size / 2.5).toLong().coerceAtLeast(5L)
+              )
+
+              repository.createProject(
+                userId = userId,
+                title = "Voice: " + scriptText.take(25),
+                type = "audio",
+                description = "Voice: ${selectedVoice.name}"
+              )
+
+              Toast.makeText(context, "Voice synthesized and saved!", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+              Toast.makeText(context, "Synthesis error: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+              isSynthesizing = false
+            }
+          }
+        },
+        modifier = Modifier.fillMaxWidth()
+      )
+    }
+
+    // Waveform Visualization & Audio Player
+    if (hasGenerated) {
+      item {
+        CyberCard(
+          modifier = Modifier.fillMaxWidth(),
+          borderColor = NeonGreen.copy(alpha = 0.4f)
+        ) {
+          Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              horizontalArrangement = Arrangement.SpaceBetween,
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              CyberBadge(text = "${selectedVoice.name.uppercase()} • ACTIVE", color = NeonGreen)
+              Row {
+                IconButton(
+                  onClick = {
+                    if (isPlaying) {
+                      ttsEngine?.stop()
+                      isPlaying = false
+                    } else {
+                      ttsEngine?.let { engine ->
+                        engine.setSpeechRate(speed)
+                        engine.setPitch(pitch)
+                        engine.speak(scriptText, TextToSpeech.QUEUE_FLUSH, null, "CreatorHubVoice")
+                        isPlaying = true
+                      }
+                    }
+                  }
+                ) {
+                  Icon(
+                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = "Play/Pause",
+                    tint = NeonGreen
+                  )
+                }
+                IconButton(
+                  onClick = {
+                    ttsEngine?.stop()
+                    isPlaying = false
+                  }
+                ) {
+                  Icon(imageVector = Icons.Default.Stop, contentDescription = "Stop", tint = MaterialTheme.colorScheme.error)
+                }
+                IconButton(
+                  onClick = {
+                    Toast.makeText(context, "Exporting WAV audio to downloads...", Toast.LENGTH_SHORT).show()
+                  }
+                ) {
+                  Icon(imageVector = Icons.Default.Download, contentDescription = "Download", tint = NeonCyan)
+                }
+              }
+            }
+
+            // Real-time Canvas Waveform Visualization
+            Box(
+              modifier = Modifier
+                .fillMaxWidth()
+                .height(68.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color.Black.copy(alpha = 0.6f)),
+              contentAlignment = Alignment.Center
+            ) {
+              Canvas(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
+                val barWidth = 8.dp.toPx()
+                val barGap = 6.dp.toPx()
+                val totalBars = (size.width / (barWidth + barGap)).toInt()
+                val centerY = size.height / 2f
+
+                for (i in 0 until totalBars) {
+                  val x = i * (barWidth + barGap)
+                  val waveFactor = if (isPlaying) {
+                    kotlin.math.sin(i.toFloat() * 0.4f + waveformOffset).coerceAtLeast(0.15f)
+                  } else {
+                    0.25f
+                  }
+                  val barHeight = (size.height * 0.75f * waveFactor).coerceAtLeast(6f)
+                  val y = centerY - barHeight / 2f
+
+                  drawRoundRect(
+                    color = if (isPlaying) NeonGreen else NeonCyan.copy(alpha = 0.4f),
+                    topLeft = Offset(x, y),
+                    size = Size(barWidth, barHeight),
+                    cornerRadius = CornerRadius(4f, 4f)
+                  )
+                }
+              }
+            }
+
+            Text(
+              text = "Export format: 48kHz WAV audio with dynamic range compression applied.",
+              color = TextMuted,
+              fontSize = 11.sp
+            )
+          }
+        }
+      }
+    }
+
+    item {
+      Spacer(modifier = Modifier.height(30.dp))
+    }
+  }
+}

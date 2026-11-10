@@ -1,0 +1,278 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Catch-All Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUser(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() <= 100 &&
+             data.email is string && data.email.size() <= 200 &&
+             (!('photoUrl' in data) || data.photoUrl == null || (data.photoUrl is string && data.photoUrl.size() <= 1000)) &&
+             data.credits is int && data.credits >= 0 &&
+             data.plan in ['free', 'creator', 'pro'] &&
+             (!('storageUsedBytes' in data) || (data.storageUsedBytes is int && data.storageUsedBytes >= 0));
+    }
+
+    function isValidProject(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.type is string && data.type.size() <= 50 &&
+             (!('description' in data) || data.description == null || (data.description is string && data.description.size() <= 5000)) &&
+             (!('category' in data) || data.category == null || (data.category is string && data.category.size() <= 100)) &&
+             (!('status' in data) || data.status == null || (data.status is string && data.status.size() <= 50));
+    }
+
+    function isValidVideo(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.prompt is string && data.prompt.size() <= 5000 &&
+             data.aspectRatio in ['9:16', '16:9', '1:1'] &&
+             data.status in ['pending', 'processing', 'completed', 'failed'] &&
+             (!('script' in data) || data.script == null || (data.script is string && data.script.size() <= 20000)) &&
+             (!('style' in data) || data.style == null || (data.style is string && data.style.size() <= 100)) &&
+             (!('resolution' in data) || data.resolution == null || (data.resolution is string && data.resolution.size() <= 50)) &&
+             (!('videoUrl' in data) || data.videoUrl == null || (data.videoUrl is string && data.videoUrl.size() <= 2000)) &&
+             (!('thumbnailUrl' in data) || data.thumbnailUrl == null || (data.thumbnailUrl is string && data.thumbnailUrl.size() <= 2000));
+    }
+
+    function isValidImage(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.prompt is string && data.prompt.size() <= 5000 &&
+             (!('style' in data) || data.style == null || (data.style is string && data.style.size() <= 100)) &&
+             (!('aspectRatio' in data) || data.aspectRatio == null || (data.aspectRatio is string && data.aspectRatio.size() <= 20)) &&
+             (!('imageUrl' in data) || data.imageUrl == null || (data.imageUrl is string && data.imageUrl.size() <= 2000)) &&
+             (!('base64Preview' in data) || data.base64Preview == null || (data.base64Preview is string && data.base64Preview.size() <= 500000)) &&
+             (!('status' in data) || data.status == null || (data.status is string && data.status.size() <= 50));
+    }
+
+    function isValidAudio(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.text is string && data.text.size() <= 10000 &&
+             data.language is string && data.language.size() <= 20 &&
+             (!('voiceName' in data) || data.voiceName == null || (data.voiceName is string && data.voiceName.size() <= 100)) &&
+             (!('speed' in data) || data.speed is number) &&
+             (!('pitch' in data) || data.pitch is number) &&
+             (!('audioUrl' in data) || data.audioUrl == null || (data.audioUrl is string && data.audioUrl.size() <= 2000)) &&
+             (!('durationSeconds' in data) || (data.durationSeconds is int && data.durationSeconds >= 0));
+    }
+
+    function isValidEditProject(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.title is string && data.title.size() <= 200 &&
+             (!('durationSeconds' in data) || (data.durationSeconds is int && data.durationSeconds >= 0)) &&
+             (!('tracksJson' in data) || data.tracksJson == null || (data.tracksJson is string && data.tracksJson.size() <= 50000)) &&
+             (!('status' in data) || data.status == null || (data.status is string && data.status.size() <= 50)) &&
+             (!('exportedUrl' in data) || data.exportedUrl == null || (data.exportedUrl is string && data.exportedUrl.size() <= 2000));
+    }
+
+    function isValidSubscription(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.planId in ['free', 'creator', 'pro'] &&
+             data.status is string && data.status.size() <= 50 &&
+             (!('renewalDate' in data) || data.renewalDate == null || (data.renewalDate is string && data.renewalDate.size() <= 100));
+    }
+
+    function isValidTransaction(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.creditsAdded is int && data.creditsAdded >= 0 &&
+             data.type is string && data.type.size() <= 50 &&
+             (!('amount' in data) || data.amount is number) &&
+             (!('status' in data) || data.status == null || (data.status is string && data.status.size() <= 50));
+    }
+
+    function isValidAiUsage(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.operation is string && data.operation.size() <= 50 &&
+             data.creditsDeducted is int && data.creditsDeducted >= 0 &&
+             (!('model' in data) || data.model == null || (data.model is string && data.model.size() <= 100));
+    }
+
+    function isValidNotification(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.message is string && data.message.size() <= 2000 &&
+             data.isRead is bool &&
+             (!('type' in data) || data.type == null || (data.type is string && data.type.size() <= 50));
+    }
+
+    // 1. Users Collection
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+      allow list: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidId(userId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       isValidUser(incoming());
+      allow update: if isSignedIn() && request.auth.uid == userId && isValidId(userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidUser(incoming());
+      allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+    }
+
+    // 2. Projects Collection
+    match /projects/{projectId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid && isValidId(projectId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(projectId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       isValidProject(incoming());
+      allow update: if isSignedIn() && isValidId(projectId) &&
+                       resource.data.userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidProject(incoming());
+      allow delete: if isSignedIn() && isValidId(projectId) && resource.data.userId == request.auth.uid;
+    }
+
+    // 3. Generated Videos
+    match /generated_videos/{videoId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid && isValidId(videoId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(videoId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       isValidVideo(incoming());
+      allow update: if isSignedIn() && isValidId(videoId) &&
+                       resource.data.userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidVideo(incoming());
+      allow delete: if isSignedIn() && isValidId(videoId) && resource.data.userId == request.auth.uid;
+    }
+
+    // 4. Generated Images
+    match /generated_images/{imageId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid && isValidId(imageId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(imageId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       isValidImage(incoming());
+      allow update: if isSignedIn() && isValidId(imageId) &&
+                       resource.data.userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidImage(incoming());
+      allow delete: if isSignedIn() && isValidId(imageId) && resource.data.userId == request.auth.uid;
+    }
+
+    // 5. Generated Audio
+    match /generated_audio/{audioId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid && isValidId(audioId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(audioId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       isValidAudio(incoming());
+      allow update: if isSignedIn() && isValidId(audioId) &&
+                       resource.data.userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidAudio(incoming());
+      allow delete: if isSignedIn() && isValidId(audioId) && resource.data.userId == request.auth.uid;
+    }
+
+    // 6. Editing Projects
+    match /editing_projects/{editId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid && isValidId(editId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(editId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       isValidEditProject(incoming());
+      allow update: if isSignedIn() && isValidId(editId) &&
+                       resource.data.userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidEditProject(incoming());
+      allow delete: if isSignedIn() && isValidId(editId) && resource.data.userId == request.auth.uid;
+    }
+
+    // 7. Subscriptions
+    match /subscriptions/{subId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid && isValidId(subId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(subId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       isValidSubscription(incoming());
+      allow update: if isSignedIn() && isValidId(subId) &&
+                       resource.data.userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidSubscription(incoming());
+      allow delete: if isSignedIn() && isValidId(subId) && resource.data.userId == request.auth.uid;
+    }
+
+    // 8. Transactions
+    match /transactions/{transId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid && isValidId(transId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(transId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       isValidTransaction(incoming());
+      allow update: if isSignedIn() && isValidId(transId) &&
+                       resource.data.userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidTransaction(incoming());
+      allow delete: if isSignedIn() && isValidId(transId) && resource.data.userId == request.auth.uid;
+    }
+
+    // 9. AI Usage
+    match /ai_usage/{usageId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid && isValidId(usageId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(usageId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       isValidAiUsage(incoming());
+      allow update: if isSignedIn() && isValidId(usageId) &&
+                       resource.data.userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidAiUsage(incoming());
+      allow delete: if isSignedIn() && isValidId(usageId) && resource.data.userId == request.auth.uid;
+    }
+
+    // 10. Notifications
+    match /notifications/{notifId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid && isValidId(notifId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(notifId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       isValidNotification(incoming());
+      allow update: if isSignedIn() && isValidId(notifId) &&
+                       resource.data.userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidNotification(incoming());
+      allow delete: if isSignedIn() && isValidId(notifId) && resource.data.userId == request.auth.uid;
+    }
+  }
+}
